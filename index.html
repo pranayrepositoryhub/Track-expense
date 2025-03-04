@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('img1.png') no-repeat center center/cover;
+            position: relative;
+            min-height: 100vh;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            text-align: center;
+            padding-bottom: 80px; /* Add padding to prevent content overlap with developer details */
+        }
+        .tabs button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .tabs button:hover {
+            background-color: #0056b3;
+        }
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 20px;
+            margin-top: 10px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        .active {
+            display: block;
+        }
+        input, button, select {
+            margin: 10px;
+            padding: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        .developer-details {
+            background-color: black;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            box-shadow: 0px -2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .developer-details a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .developer-details a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Personal Finance Tracker</h1>
+        <div class="tabs">
+            <button onclick="openTab(event, 'expenses')">Expense Tracker</button>
+            <button onclick="openTab(event, 'comparison')">Comparison Graph</button>
+            <button onclick="openTab(event, 'savings')">Monthly Income & Savings</button>
+        </div>
+        
+        <div id="expenses" class="tab-content active">
+            <h2>Enter Your Expenses</h2>
+            <label for="currency">Select Currency:</label>
+            <select id="currency" onchange="updateCurrencySymbol()">
+                <option value="$">USD ($)</option>
+                <option value="€">Euro (€)</option>
+                <option value="₹">INR (₹)</option>
+                <option value="£">GBP (£)</option>
+            </select>
+            <select id="expenseMonth">
+                <option value="January">January</option>
+                <option value="February">February</option>
+                <option value="March">March</option>
+                <option value="April">April</option>
+                <option value="May">May</option>
+                <option value="June">June</option>
+                <option value="July">July</option>
+                <option value="August">August</option>
+                <option value="September">September</option>
+                <option value="October">October</option>
+                <option value="November">November</option>
+                <option value="December">December</option>
+            </select>
+            <input type="text" id="expenseName" placeholder="Expense Name">
+            <input type="number" id="expenseAmount" placeholder="Amount">
+            <button onclick="addExpense()">Add Expense</button>
+            <button onclick="saveExpenses()">Save Data</button>
+            <button onclick="deleteAllExpenses()">Delete All</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Expense Details</th>
+                        <th>Total (<span id="currencySymbol">$</span>)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="expenseTableBody"></tbody>
+            </table>
+            <h3>Total: <span id="currencySymbolTotal">$</span><span id="totalExpense">0</span></h3>
+        </div>
+        
+        <div id="comparison" class="tab-content">
+            <h2>Comparison of Monthly Expenses</h2>
+            <canvas id="expensesChart"></canvas>
+        </div>
+        
+        <div id="savings" class="tab-content">
+            <h2>Monthly Income & Savings</h2>
+            <label for="monthlyIncome">Enter Your Monthly Income:</label>
+            <input type="number" id="monthlyIncome" placeholder="Enter income">
+            <button onclick="saveIncome()">Save Income</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Income</th>
+                        <th>Expenses</th>
+                        <th>Savings</th>
+                    </tr>
+                </thead>
+                <tbody id="savingsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Developer Details Section -->
+    <div class="developer-details">
+        <p>Developed by: <strong>Pranay Reddy Kandula</strong></p>
+        <p>Email: <a href="mailto:reddypranaykandula@gmail.com">reddypranaykandula@gmail.com</a></p>
+    </div>
+
+    <script>
+        let expensesChart = null; // Global variable to store the chart instance
+
+        function openTab(evt, tabName) {
+            document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
+            document.getElementById(tabName).classList.add("active");
+            if (tabName === 'comparison') updateChart();
+            if (tabName === 'savings') updateSavingsTable();
+        }
+
+        function updateCurrencySymbol() {
+            let currency = document.getElementById("currency").value;
+            document.getElementById("currencySymbol").textContent = currency;
+            document.getElementById("currencySymbolTotal").textContent = currency;
+        }
+
+        function addExpense() {
+            let month = document.getElementById("expenseMonth").value;
+            let name = document.getElementById("expenseName").value;
+            let amount = parseFloat(document.getElementById("expenseAmount").value) || 0;
+            if (!name || amount <= 0) {
+                alert("Please enter valid expense details.");
+                return;
+            }
+            let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+            expenses.push({ month, name, amount });
+            localStorage.setItem("expenses", JSON.stringify(expenses));
+            updateExpenseTable();
+        }
+
+        function updateExpenseTable() {
+            let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+            let tableBody = document.getElementById("expenseTableBody");
+            tableBody.innerHTML = "";
+            let total = 0;
+            expenses.forEach(exp => {
+                total += exp.amount;
+                let row = `<tr><td>${exp.month}</td><td>${exp.name}</td><td>${exp.amount}</td><td><button onclick="deleteExpense('${exp.name}')">Delete</button></td></tr>`;
+                tableBody.innerHTML += row;
+            });
+            document.getElementById("totalExpense").textContent = total;
+        }
+
+        function deleteExpense(name) {
+            let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+            expenses = expenses.filter(exp => exp.name !== name);
+            localStorage.setItem("expenses", JSON.stringify(expenses));
+            updateExpenseTable();
+        }
+
+        function deleteAllExpenses() {
+            localStorage.removeItem("expenses");
+            updateExpenseTable();
+        }
+
+        function saveExpenses() {
+            alert("Expenses saved to local storage.");
+        }
+
+        function saveIncome() {
+            let income = parseFloat(document.getElementById("monthlyIncome").value) || 0;
+            if (income <= 0) {
+                alert("Please enter a valid income.");
+                return;
+            }
+            localStorage.setItem("monthlyIncome", income);
+            updateSavingsTable();
+        }
+
+        function updateSavingsTable() {
+            let income = parseFloat(localStorage.getItem("monthlyIncome")) || 0;
+            let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+            let expenseData = {};
+            expenses.forEach(exp => {
+                expenseData[exp.month] = (expenseData[exp.month] || 0) + exp.amount;
+            });
+            let tableBody = document.getElementById("savingsTableBody");
+            tableBody.innerHTML = "";
+            for (let month in expenseData) {
+                let savings = income - expenseData[month];
+                let row = `<tr><td>${month}</td><td>${income}</td><td>${expenseData[month]}</td><td>${savings}</td></tr>`;
+                tableBody.innerHTML += row;
+            }
+        }
+
+        function updateChart() {
+            let ctx = document.getElementById("expensesChart").getContext("2d");
+            let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+            let expenseData = {};
+            expenses.forEach(exp => {
+                expenseData[exp.month] = (expenseData[exp.month] || 0) + exp.amount;
+            });
+            let labels = Object.keys(expenseData);
+            let data = Object.values(expenseData);
+
+            // Destroy existing chart instance if it exists
+            if (expensesChart) {
+                expensesChart.destroy();
+            }
+
+            // Create new chart
+            expensesChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Expenses",
+                        data: data,
+                        backgroundColor: "rgba(75, 192, 192, 0.2)",
+                        borderColor: "rgba(75, 192, 192, 1)",
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize
+        updateCurrencySymbol();
+        updateExpenseTable();
+    </script>
+</body>
+</html>
