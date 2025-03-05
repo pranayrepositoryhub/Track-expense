@@ -73,10 +73,55 @@
         .developer-details a:hover {
             text-decoration: underline;
         }
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-form {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        .login-form input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .login-form button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .login-form button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="login-container" id="loginContainer">
+        <div class="login-form" id="loginForm">
+            <h2>Login</h2>
+            <input type="text" id="loginUsername" placeholder="Username">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <p>Don't have an account? <a href="#" onclick="showSignup()">Sign up</a></p>
+        </div>
+        <div class="login-form" id="signupForm" style="display: none;">
+            <h2>Sign Up</h2>
+            <input type="text" id="signupUsername" placeholder="Username">
+            <input type="password" id="signupPassword" placeholder="Password">
+            <button onclick="signup()">Sign Up</button>
+            <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer" style="display: none;">
         <h1>Personal Finance Tracker</h1>
         <div class="tabs">
             <button onclick="openTab(event, 'expenses')">Expense Tracker</button>
@@ -277,6 +322,50 @@
                     }
                 }
             });
+        }
+
+        // Login and Signup Functions
+        function showSignup() {
+            document.getElementById("loginForm").style.display = "none";
+            document.getElementById("signupForm").style.display = "block";
+        }
+
+        function showLogin() {
+            document.getElementById("signupForm").style.display = "none";
+            document.getElementById("loginForm").style.display = "block";
+        }
+
+        function signup() {
+            let username = document.getElementById("signupUsername").value;
+            let password = document.getElementById("signupPassword").value;
+            if (!username || !password) {
+                alert("Please enter a username and password.");
+                return;
+            }
+            let users = JSON.parse(localStorage.getItem("users")) || {};
+            if (users[username]) {
+                alert("Username already exists.");
+                return;
+            }
+            users[username] = password;
+            localStorage.setItem("users", JSON.stringify(users));
+            alert("Signup successful. Please login.");
+            showLogin();
+            // Clear input fields
+            document.getElementById("signupUsername").value = "";
+            document.getElementById("signupPassword").value = "";
+        }
+
+        function login() {
+            let username = document.getElementById("loginUsername").value;
+            let password = document.getElementById("loginPassword").value;
+            let users = JSON.parse(localStorage.getItem("users")) || {};
+            if (users[username] === password) {
+                document.getElementById("loginContainer").style.display = "none";
+                document.getElementById("mainContainer").style.display = "block";
+            } else {
+                alert("Invalid username or password.");
+            }
         }
 
         // Initialize
